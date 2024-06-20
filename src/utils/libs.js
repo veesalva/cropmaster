@@ -1,4 +1,4 @@
-function timeAgo(date) {
+export function timeAgo(date) {
     date = new Date(date);
     const now = new Date();
     const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
@@ -36,4 +36,3 @@ function timeAgo(date) {
 
 
 
-export { timeAgo };

@@ -2,11 +2,13 @@ import React, {useState} from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
+import { useGlobalContext } from '../../../context';
 
 const Login = ({ setToken, setUserId}) => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState(null);
+    const {handleSetToken, handleSetUserData} = useGlobalContext();
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
@@ -16,18 +18,19 @@ const Login = ({ setToken, setUserId}) => {
             username,
             password,
           });
-          setToken(response.data.key);
+          handleSetToken(response.data.key);
     
           const userResponse = await axios.get('https://tyktyk.pythonanywhere.com/api/user-details/', {
             headers: {
               'Authorization': `Token ${response.data.key}`
             }
           });
+        
     
-          setUserId(userResponse.data.pk);
+          handleSetUserData({id:userResponse.data.pk, username:userResponse.data.username});
     
           const role = userResponse.data.role;
-    
+
           switch (role) {
             case 'farmer':
               navigate('/farmers/*');
@@ -43,6 +46,7 @@ const Login = ({ setToken, setUserId}) => {
     
           setError(null);
         } catch (err) {
+          console.log(err)
           setError('Invalid username or password');
         }
       };

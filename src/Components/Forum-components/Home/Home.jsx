@@ -1,37 +1,59 @@
 import React, { useEffect, useState } from 'react';
 import { useGlobalContext } from '../Context';
+import { useGlobalContext as useContext } from '../../../context';
 import Navbar from '../components/Navbar';
 import SinglePost from './SinglePost';
-
+import api from '../../../api';
 
 const Home = () => {
   const sections = ["Trending", "All Forums", "New Posts"]
+  const {userData, token} = useContext()
   const [activeSection, setActiveSection] = useState(0)
   const [posts, setPosts] = useState([])
   const {newPostAlert} = useGlobalContext()
-  useEffect(() => {
-    const posts = JSON.parse(localStorage.getItem('forum')) || []
-    // it is objects {id: {title, description, comments, likes, createdAt}}
-    const postsArray = Object.keys(posts).map((key) => {
-      return posts[key]
-    })
-    if(activeSection===0){
-      // trending
-      postsArray.sort((a, b) => {
-        return b.likes - a.likes
-      })}
-    else if(activeSection===1){
-      // all forums
-      postsArray.sort((a, b) => {
-        return new Date(b.createdAt) - new Date(a.createdAt)
-      })}
-    else if(activeSection===2){
-      // new posts
-      postsArray.sort((a, b) => {
-        return new Date(b.createdAt) - new Date(a.createdAt)
-      })}
-    setPosts(postsArray)
-    console.log(postsArray)
+
+
+  useEffect( () => {
+    async function fetchPosts(){
+      console.log(userData, token)
+      const {data:{results}} =  await  api.get(
+        '/discussion/posts/',  { headers:{Authorization: `Token ${token}`}}
+      )
+      const postsArray = results.map(
+        (it)=>{
+          const { title, author, content, comments, created_at, id} = it;
+          return {
+            id,
+        username: author === userData.id ? userData.username:"testUser",
+            comments,
+            title, 
+            likes:0,
+            description:content,
+            createdAt:created_at
+  
+          }
+        }
+      )
+      console.log(postsArray)
+      if(activeSection===0){
+        // trending
+        postsArray.sort((a, b) => {
+          return b.likes - a.likes
+        })}
+      else if(activeSection===1){
+        // all forums
+        postsArray.sort((a, b) => {
+          return new Date(b.createdAt) - new Date(a.createdAt)
+        })}
+      else if(activeSection===2){
+        // new posts
+        postsArray.sort((a, b) => {
+          return new Date(b.createdAt) - new Date(a.createdAt)
+        })}
+      setPosts(postsArray)
+    }
+   fetchPosts();
+  
   }, [activeSection, newPostAlert]);
 
   return (

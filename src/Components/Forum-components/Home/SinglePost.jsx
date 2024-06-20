@@ -1,14 +1,25 @@
-import React from 'react';
+import React, { useDebugValue } from 'react';
 import { CiCalendar } from "react-icons/ci";
 import { FaRegComment, FaRegHeart, FaRegUser } from "react-icons/fa";
 import { IoMdHeart } from "react-icons/io";
 import { MdKeyboardArrowDown, MdKeyboardArrowUp } from "react-icons/md";
 import { timeAgo } from '../../../utils/libs';
+import { useGlobalContext } from '../../../context';
+import api from '../../../api';
+import { useGlobalContext as useCommentContext } from '../Context';
 const SinglePost = ({post}) => {
-    const {title, description, comments:comm, likes:lik, createdAt} = post
-    
+    const {title, description, comments:comm, likes:lik, createdAt, username} = post
+    const {userData} = useGlobalContext();
     const [clickedComment, setClickedComment] = React.useState(false)
-    const [comments, setComments] = React.useState(comm)
+    const [comments, setComments] = React.useState(comm.map(
+        ({author, content, created_at})=>{
+            return {
+                user: author===userData.id ? userData.username: "testUser",
+                comment:content,
+                createdAt: created_at
+            }
+        }
+    ))
     const [likes, setLikes] = React.useState(lik)
     const [liked, setLiked] = React.useState(false)
     const handleLike = (incr) => {
@@ -24,7 +35,7 @@ const SinglePost = ({post}) => {
     <div className='flex '>
         <div className='flex   items-center pe-2'>
             <FaRegUser className=' text-gray-500 pe-1' />
-            <h1 className=' text-gray-500 '>john</h1>
+            <h1 className=' text-gray-500 '>{username}</h1>
         </div>
         <div className='flex   items-center'>
             <CiCalendar className=' text-gray-500 pe-1 text-lg' />
@@ -64,20 +75,29 @@ const SinglePost = ({post}) => {
 }
 
 const CommentSection = ({comments, id, setComments}) => {
-   
+   const {newPostAlert, setNewPostAlert} = useCommentContext()
+    const {token} = useGlobalContext();
+    
     const [comment, setComment] = React.useState('')
     const handleSubmit = (e) => {
         e.preventDefault()
-        if(comment==='') return
-        let forum = JSON.parse(localStorage.getItem('forum'))
-        forum[id].comments.push({
-            comment,
-            user: 'joe',
-            createdAt: new Date().toISOString()
-        })
-        setComments([...forum[id].comments])
-        localStorage.setItem('forum', JSON.stringify(forum))
-        setComment('')
+        if(comment===''){
+            setComment('')
+        }
+        const res =  api.post(
+            `/discussion/posts/${id}/add_comment/`, {
+              post:id, content:comment
+            }, { headers:{Authorization: `Token ${token}`}}
+          ).then(
+            ({status, data})=>{
+             if(status===201){
+                setNewPostAlert(!newPostAlert)
+              console.log('success!', data)
+
+             } 
+            }
+          )
+       setComment('')
     }
     comments.sort((a, b) => {
         return new Date(b.createdAt) - new Date(a.createdAt)
